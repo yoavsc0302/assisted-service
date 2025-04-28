@@ -297,6 +297,63 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		Expect(val.Payload).To(Equal(expectedPayload))
 	})
 
+	It("Should always return multi-arch images regardless of organization", func() {
+		releaseImages := models.ReleaseImages{
+			{
+				CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.14-multi"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.14.0-ec.3-multi"),
+				Version:          swag.String("4.14.0-ec.3-multi"),
+				SupportLevel:     models.ReleaseImageSupportLevelProduction,
+			},
+		}
+		err := db.Create(&releaseImages).Error
+		Expect(err).ToNot(HaveOccurred())
+
+		osImages := osImageList{
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.14/4.14.48/rhcos-4.14.48-x86_64-live.x86_64.iso"),
+				Version:          swag.String("414.86.202308081056-0"),
+			},
+			{
+				OpenshiftVersion: swag.String("4.14"),
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				URL:              swag.String("https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.14/4.14.48/rhcos-4.14.48-aarch64-live.aarch64.iso"),
+				Version:          swag.String("414.86.202308081056-0"),
+			},
+		}
+
+		expectedPayload := models.OpenshiftVersions{
+			"4.14.0-ec.3-multi": {
+				DisplayName:      swag.String("4.14.0-ec.3-multi"),
+				CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+				SupportLevel:     swag.String(models.ReleaseImageSupportLevelProduction),
+				Default:          false,
+			},
+		}
+
+		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		Expect(err).ToNot(HaveOccurred())
+		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
+
+		// Test with different auth contexts to verify multi-arch is always available
+		contexts := []context.Context{
+			context.Background(), // No auth
+			context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Organization: "org1"}),
+			context.WithValue(context.Background(), restapi.AuthKey, &ocm.AuthPayload{Organization: "org2"}),
+		}
+
+		for _, ctx := range contexts {
+			reply := h.V2ListSupportedOpenshiftVersions(ctx, operations.V2ListSupportedOpenshiftVersionsParams{})
+			Expect(reply).Should(BeAssignableToTypeOf(operations.NewV2ListSupportedOpenshiftVersionsOK()))
+			val, _ := reply.(*operations.V2ListSupportedOpenshiftVersionsOK)
+			Expect(val.Payload).To(Equal(expectedPayload))
+		}
+	})
+
 	Context("Test filter by version_pattern query parameter", func() {
 		releaseImages := models.ReleaseImages{
 			{
