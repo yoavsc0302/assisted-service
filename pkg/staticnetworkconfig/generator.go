@@ -405,6 +405,9 @@ func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, mac
 	interfaceCheck := make(map[string]struct{}, len(macInterfaceMap))
 	macCheck := make(map[string]struct{}, len(macInterfaceMap))
 	for _, macInterface := range macInterfaceMap {
+		if macInterface.MacAddress == "" {
+			return fmt.Errorf("mac_address for host %d must not be empty", hostIdx)
+		}
 		interfaceCheck[macInterface.LogicalNicName] = struct{}{}
 		macCheck[macInterface.MacAddress] = struct{}{}
 	}

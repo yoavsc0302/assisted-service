@@ -340,6 +340,23 @@ var _ = Describe("validate mac interface mapping", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("at least one interface for host"))
 		})
+		It("empty mac address is rejected", func() {
+			staticNetworkConfig := []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: []*models.MacInterfaceMapItems0{
+						{
+							LogicalNicName: "eth0",
+							MacAddress:     "",
+						},
+					},
+					NetworkYaml: singleInterfaceYAML,
+				},
+			}
+			err := staticNetworkGenerator.ValidateStaticConfigParamsYAML(staticNetworkConfig)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("mac_address for host"))
+			Expect(err.Error()).To(ContainSubstring("must not be empty"))
+		})
 		It("mac-identifier field is supported", func() {
 			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
