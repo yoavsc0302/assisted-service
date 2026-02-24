@@ -294,7 +294,7 @@ func BuildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStat
 		log.Debugf("adding MAC interface map to host static network config - Name: %s, MacAddress: %s ,",
 			cfg.Name, cfg.MacAddress)
 		macInterfaceMap = append(macInterfaceMap, &models.MacInterfaceMapItems0{
-			MacAddress:     cfg.MacAddress,
+			MacAddress:     swag.String(cfg.MacAddress),
 			LogicalNicName: cfg.Name,
 		})
 	}

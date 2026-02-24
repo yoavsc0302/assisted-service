@@ -103,7 +103,7 @@ func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models
 	var captureSection []string
 
 	for j, mac := range hostConfig.MacInterfaceMap {
-		macAddress := mac.MacAddress
+		macAddress := *mac.MacAddress
 		interfaceName := mac.LogicalNicName
 
 		// Generate capture section
@@ -406,7 +406,7 @@ func (s *StaticNetworkConfigGenerator) validateMacInterfaceName(hostIdx int, mac
 	macCheck := make(map[string]struct{}, len(macInterfaceMap))
 	for _, macInterface := range macInterfaceMap {
 		interfaceCheck[macInterface.LogicalNicName] = struct{}{}
-		macCheck[macInterface.MacAddress] = struct{}{}
+		macCheck[*macInterface.MacAddress] = struct{}{}
 	}
 	if len(interfaceCheck) < len(macInterfaceMap) || len(macCheck) < len(macInterfaceMap) {
 		return fmt.Errorf("MACs and Interfaces for host %d must be unique", hostIdx)
@@ -418,7 +418,7 @@ func compareMapInterfaces(intf1, intf2 *models.MacInterfaceMapItems0) bool {
 	if intf1.LogicalNicName != intf2.LogicalNicName {
 		return intf1.LogicalNicName < intf2.LogicalNicName
 	}
-	return intf1.MacAddress < intf2.MacAddress
+	return *intf1.MacAddress < *intf2.MacAddress
 }
 
 func compareMacInterfaceMaps(map1, map2 models.MacInterfaceMap) bool {
@@ -478,7 +478,7 @@ func (s *StaticNetworkConfigGenerator) decodeStaticNetworkConfig(staticNetworkCo
 func (s *StaticNetworkConfigGenerator) formatMacInterfaceMap(macInterfaceMap models.MacInterfaceMap) string {
 	lines := make([]string, len(macInterfaceMap))
 	for i, entry := range macInterfaceMap {
-		lines[i] = fmt.Sprintf("%s=%s", entry.MacAddress, entry.LogicalNicName)
+		lines[i] = fmt.Sprintf("%s=%s", *entry.MacAddress, entry.LogicalNicName)
 	}
 	sort.Strings(lines)
 	return strings.Join(lines, "\n")

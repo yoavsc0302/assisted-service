@@ -374,10 +374,10 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 		// Convert mac_interface_map to v1beta1.Interface format
 		interfaces := make([]*v1beta1.Interface, 0, len(config.MacInterfaceMap))
 		for _, macInterface := range config.MacInterfaceMap {
-			if macInterface != nil && macInterface.MacAddress != "" && macInterface.LogicalNicName != "" {
+			if macInterface != nil && macInterface.MacAddress != nil && *macInterface.MacAddress != "" && macInterface.LogicalNicName != "" {
 				interfaces = append(interfaces, &v1beta1.Interface{
 					Name:       macInterface.LogicalNicName,
-					MacAddress: macInterface.MacAddress,
+					MacAddress: *macInterface.MacAddress,
 				})
 			}
 		}

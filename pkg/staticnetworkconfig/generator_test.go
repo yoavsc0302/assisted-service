@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -110,7 +111,7 @@ var _ = Describe("validate mac interface mapping", func() {
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
 						LogicalNicName: "eth0",
-						MacAddress:     "f8:75:a4:a4:00:fe",
+						MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 					},
 				},
 				NetworkYaml: singleInterfaceYAML,
@@ -126,7 +127,7 @@ var _ = Describe("validate mac interface mapping", func() {
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
 						LogicalNicName: "eth0",
-						MacAddress:     "f8:75:a4:a4:00:fe",
+						MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 					},
 				},
 				NetworkYaml: multipleInterfacesYAML,
@@ -142,11 +143,11 @@ var _ = Describe("validate mac interface mapping", func() {
 				MacInterfaceMap: []*models.MacInterfaceMapItems0{
 					{
 						LogicalNicName: "eth0",
-						MacAddress:     "f8:75:a4:a4:00:fe",
+						MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 					},
 					{
 						LogicalNicName: "eth1",
-						MacAddress:     "f8:75:a4:a4:00:ff",
+						MacAddress:     swag.String("f8:75:a4:a4:00:ff"),
 					},
 				},
 				NetworkYaml: multipleInterfacesYAML,
@@ -179,11 +180,11 @@ var _ = Describe("validate mac interface mapping", func() {
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
 							LogicalNicName: "eth0",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 						{
 							LogicalNicName: "eth1",
-							MacAddress:     "f8:75:a4:a4:00:ff",
+							MacAddress:     swag.String("f8:75:a4:a4:00:ff"),
 						},
 					},
 					NetworkYaml: bondYAML,
@@ -199,11 +200,11 @@ var _ = Describe("validate mac interface mapping", func() {
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
 							LogicalNicName: "eth2",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 						{
 							LogicalNicName: "eth3",
-							MacAddress:     "f8:75:a4:a4:00:ff",
+							MacAddress:     swag.String("f8:75:a4:a4:00:ff"),
 						},
 					},
 					NetworkYaml: bondYAML,
@@ -249,7 +250,7 @@ var _ = Describe("validate mac interface mapping", func() {
 					MacInterfaceMap: models.MacInterfaceMap{
 						{
 							LogicalNicName: "eth1",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 					},
 					NetworkYaml: withUnderlyingInterface,
@@ -264,7 +265,7 @@ var _ = Describe("validate mac interface mapping", func() {
 					MacInterfaceMap: models.MacInterfaceMap{
 						{
 							LogicalNicName: "eth1",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 					},
 					NetworkYaml: withoutUnderlyingInterface,
@@ -320,7 +321,7 @@ var _ = Describe("validate mac interface mapping", func() {
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
 							LogicalNicName: "eth0",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 					},
 					NetworkYaml: withPhysicalInterface,
@@ -340,13 +341,23 @@ var _ = Describe("validate mac interface mapping", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("at least one interface for host"))
 		})
+		It("empty mac address is rejected by swagger validation", func() {
+			item := &models.MacInterfaceMapItems0{
+				LogicalNicName: "eth0",
+				MacAddress:     swag.String(""),
+			}
+			err := item.Validate(nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("mac_address"))
+			Expect(err.Error()).To(ContainSubstring("match"))
+		})
 		It("mac-identifier field is supported", func() {
 			staticNetworkConfig := []*models.HostStaticNetworkConfig{
 				{
 					MacInterfaceMap: []*models.MacInterfaceMapItems0{
 						{
 							LogicalNicName: "eth0",
-							MacAddress:     "f8:75:a4:a4:00:fe",
+							MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 						},
 					},
 					NetworkYaml: withMacIdentifier,
@@ -393,9 +404,9 @@ var _ = Describe("StaticNetworkConfig", func() {
 
 	It("validate mac interface", func() {
 		input := models.MacInterfaceMap{
-			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
-			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
-			{LogicalNicName: "eth2", MacAddress: "macaddress2"},
+			{LogicalNicName: "eth0", MacAddress: swag.String("macaddress0")},
+			{LogicalNicName: "eth1", MacAddress: swag.String("macaddress1")},
+			{LogicalNicName: "eth2", MacAddress: swag.String("macaddress2")},
 		}
 		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			{
@@ -408,9 +419,9 @@ var _ = Describe("StaticNetworkConfig", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		input = models.MacInterfaceMap{
-			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
-			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
-			{LogicalNicName: "eth0", MacAddress: "macaddress2"},
+			{LogicalNicName: "eth0", MacAddress: swag.String("macaddress0")},
+			{LogicalNicName: "eth1", MacAddress: swag.String("macaddress1")},
+			{LogicalNicName: "eth0", MacAddress: swag.String("macaddress2")},
 		}
 		staticNetworkConfig = []*models.HostStaticNetworkConfig{
 			{
@@ -422,9 +433,9 @@ var _ = Describe("StaticNetworkConfig", func() {
 		Expect(err).To(HaveOccurred())
 
 		input = models.MacInterfaceMap{
-			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
-			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
-			{LogicalNicName: "eth2", MacAddress: "macaddress0"},
+			{LogicalNicName: "eth0", MacAddress: swag.String("macaddress0")},
+			{LogicalNicName: "eth1", MacAddress: swag.String("macaddress1")},
+			{LogicalNicName: "eth2", MacAddress: swag.String("macaddress0")},
 		}
 		staticNetworkConfig = []*models.HostStaticNetworkConfig{
 			{
@@ -438,10 +449,10 @@ var _ = Describe("StaticNetworkConfig", func() {
 
 	It("check formatting static network for DB", func() {
 		map1 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
 		}
 		map2 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
 		}
 		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
@@ -456,15 +467,15 @@ var _ = Describe("StaticNetworkConfig", func() {
 
 	It("sorted formatting static network for DB", func() {
 		map1 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
-			&models.MacInterfaceMapItems0{MacAddress: "mac0", LogicalNicName: "nic0"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac0"), LogicalNicName: "nic0"},
 		}
 		sortedMap1 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac0", LogicalNicName: "nic0"},
-			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac0"), LogicalNicName: "nic0"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
 		}
 		map2 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
 		}
 		unsortedStaticNetworkConfig := []*models.HostStaticNetworkConfig{
 			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
@@ -504,15 +515,15 @@ var _ = Describe("StaticNetworkConfig", func() {
 				MacInterfaceMap: models.MacInterfaceMap{
 					{
 						LogicalNicName: "eth0",
-						MacAddress:     "f8:75:a4:a4:00:fe",
+						MacAddress:     swag.String("f8:75:a4:a4:00:fe"),
 					},
 					{
 						LogicalNicName: "eth1",
-						MacAddress:     "f8:75:a4:a4:00:ff",
+						MacAddress:     swag.String("f8:75:a4:a4:00:ff"),
 					},
 					{
 						LogicalNicName: "eth2",
-						MacAddress:     "f8:75:a4:a4:01:00",
+						MacAddress:     swag.String("f8:75:a4:a4:01:00"),
 					},
 				},
 				NetworkYaml: multipleInterfacesYAML,

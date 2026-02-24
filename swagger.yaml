@@ -5978,6 +5978,8 @@ definitions:
         logical_nic_name:
           type: string
           description: nic name used in the yaml, which relates 1:1 to the mac address
+      required:
+        - mac_address
 
   image_type:
     type: string

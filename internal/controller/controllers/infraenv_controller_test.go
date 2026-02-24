@@ -1347,8 +1347,8 @@ var _ = Describe("infraEnv reconcile", func() {
 			hostStaticNetworkConfig = common.FormatStaticConfigHostYAML(
 				nicPrimary, nicSecondary, ip4Primary, ip4Secondary, dnsGW,
 				models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: macPrimary, LogicalNicName: nicPrimary},
-					&models.MacInterfaceMapItems0{MacAddress: macSecondary, LogicalNicName: nicSecondary},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String(macPrimary), LogicalNicName: nicPrimary},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String(macSecondary), LogicalNicName: nicSecondary},
 				})
 		})
 

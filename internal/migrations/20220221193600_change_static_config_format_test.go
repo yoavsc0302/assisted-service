@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-gormigrate/gormigrate/v2"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,10 +59,10 @@ var _ = Describe("Migrate static config format", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		map1 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
 		}
 		map2 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+			&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
 		}
 		staticNetworkConfig := []*models.HostStaticNetworkConfig{
 			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),

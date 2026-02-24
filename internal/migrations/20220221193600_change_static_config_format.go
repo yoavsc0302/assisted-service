@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-gormigrate/gormigrate/v2"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -20,7 +21,7 @@ const CHANGE_STATIC_CONFIG_FORMAT_KEY = "20220221193600"
 func formatMacInterfaceMap(macInterfaceMap models.MacInterfaceMap) string {
 	lines := make([]string, len(macInterfaceMap))
 	for i, entry := range macInterfaceMap {
-		lines[i] = fmt.Sprintf("%s=%s", entry.MacAddress, entry.LogicalNicName)
+		lines[i] = fmt.Sprintf("%s=%s", *entry.MacAddress, entry.LogicalNicName)
 	}
 	sort.Strings(lines)
 	return strings.Join(lines, "\n")
@@ -35,7 +36,7 @@ func unformatMacInterfaceMap(macInterfaceMapStr string) (models.MacInterfaceMap,
 			return nil, errors.Errorf("Split line '%s' does not have exact length of 2", lines[i])
 		}
 		ret[i] = &models.MacInterfaceMapItems0{
-			MacAddress:     splitLine[0],
+			MacAddress:     swag.String(splitLine[0]),
 			LogicalNicName: splitLine[1],
 		}
 	}

@@ -9991,6 +9991,9 @@ func init() {
       "type": "array",
       "items": {
         "type": "object",
+        "required": [
+          "mac_address"
+        ],
         "properties": {
           "logical_nic_name": {
             "description": "nic name used in the yaml, which relates 1:1 to the mac address",
@@ -17899,6 +17902,9 @@ func init() {
     },
     "MacInterfaceMapItems0": {
       "type": "object",
+      "required": [
+        "mac_address"
+      ],
       "properties": {
         "logical_nic_name": {
           "description": "nic name used in the yaml, which relates 1:1 to the mac address",

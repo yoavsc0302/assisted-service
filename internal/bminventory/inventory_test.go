@@ -9976,16 +9976,16 @@ var _ = Describe("infraEnvs", func() {
 				mockInfraEnvUpdateSuccess()
 				staticNetworkFormatRes := "static network format result"
 				map1 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac11"), LogicalNicName: "nic11"},
 				}
 				map2 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac21"), LogicalNicName: "nic21"},
 				}
 				map3 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac30"), LogicalNicName: "nic30"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac31"), LogicalNicName: "nic31"},
 				}
 				staticNetworkConfig := []*models.HostStaticNetworkConfig{
 					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
@@ -10013,16 +10013,16 @@ var _ = Describe("infraEnvs", func() {
 				Expect(err).ToNot(HaveOccurred())
 				staticNetworkFormatRes := "static network format result"
 				map1 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac11"), LogicalNicName: "nic11"},
 				}
 				map2 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac21"), LogicalNicName: "nic21"},
 				}
 				map3 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
-					&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac30"), LogicalNicName: "nic30"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac31"), LogicalNicName: "nic31"},
 				}
 				staticNetworkConfig := []*models.HostStaticNetworkConfig{
 					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
@@ -10052,7 +10052,7 @@ var _ = Describe("infraEnvs", func() {
 
 				staticNetworkFormatRes := "static network format result"
 				map1 := models.MacInterfaceMap{
-					&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+					&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
 				}
 				staticNetworkConfig := []*models.HostStaticNetworkConfig{
 					common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
@@ -10490,16 +10490,16 @@ var _ = Describe("infraEnvs", func() {
 					By("updating static network config")
 					staticNetworkFormatRes := "static network format result"
 					map1 := models.MacInterfaceMap{
-						&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
-						&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac10"), LogicalNicName: "nic10"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac11"), LogicalNicName: "nic11"},
 					}
 					map2 := models.MacInterfaceMap{
-						&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
-						&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac20"), LogicalNicName: "nic20"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac21"), LogicalNicName: "nic21"},
 					}
 					map3 := models.MacInterfaceMap{
-						&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
-						&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac30"), LogicalNicName: "nic30"},
+						&models.MacInterfaceMapItems0{MacAddress: swag.String("mac31"), LogicalNicName: "nic31"},
 					}
 					staticNetworkConfig := []*models.HostStaticNetworkConfig{
 						common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
