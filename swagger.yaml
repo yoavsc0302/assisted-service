@@ -6389,6 +6389,9 @@ definitions:
         type: boolean
       partitionTypes:
         type: string
+      has_data:
+        type: boolean
+        description: Whether the disk has existing data (filesystem signatures or partition tables). Detected by the agent using wipefs and blkid.
       is_installation_media:
         type: boolean
         description: Whether the disk appears to be an installation media or not

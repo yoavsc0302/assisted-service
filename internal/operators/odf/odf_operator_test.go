@@ -117,6 +117,25 @@ var _ = Describe("Odf Operator", func() {
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
 					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
 				}})}
+		masterWithNonEmptyDisk = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2, HasData: true, Name: "sdb"},
+				}})}
+		masterWithNonEmptyInstallationDisk = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1, HasData: true},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+				}})}
+		masterWithNonEmptySmallDisk = &models.Host{ID: getHostID(), Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 5 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID3, HasData: true, Name: "sdc"},
+				}})}
 	)
 
 	Context("GetHostRequirements", func() {
@@ -716,6 +735,45 @@ var _ = Describe("Odf Operator", func() {
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in compact mode."},
+				},
+			),
+
+			table.Entry("there is a master with a non-empty disk",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithLessDiskSize, masterWithNonEmptyDisk,
+				}}},
+				masterWithNonEmptyDisk,
+				api.ValidationResult{
+					Status:       api.Failure,
+					ValidationId: operator.GetHostValidationID(),
+					Reasons: []string{
+						"ODF requires all non-installation disks to be empty, but the following disks have existing data: sdb. " +
+							"Please wipe them by running `wipefs -a /dev/sdb` on the host before proceeding with installation.",
+					},
+				},
+			),
+
+			table.Entry("there is a master where only the installation disk has data",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithLessDiskSize, masterWithNonEmptyInstallationDisk,
+				}}},
+				masterWithNonEmptyInstallationDisk,
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: operator.GetHostValidationID(),
+					Reasons:      []string{},
+				},
+			),
+
+			table.Entry("there is a master with a non-empty disk that is too small for ODF",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithLessDiskSize, masterWithNonEmptySmallDisk,
+				}}},
+				masterWithNonEmptySmallDisk,
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: operator.GetHostValidationID(),
+					Reasons:      []string{},
 				},
 			),
 		)

@@ -13,12 +13,17 @@ import (
 
 // Returns count for disks that are not installion disk and fulfill size requirements (eligible disks) and
 // disks that are not installation disk (available disks)
+func isNonInstallationDisk(disk *models.Disk, installationDiskID string) bool {
+	return (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) &&
+		installationDiskID != disk.ID && disk.SizeBytes != 0
+}
+
 func NonInstallationDiskCount(disks []*models.Disk, installationDiskID string, minSizeGB int64) (int64, int64) {
 	var eligibleDisks int64
 	var availableDisks int64
 
 	for _, disk := range disks {
-		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+		if isNonInstallationDisk(disk, installationDiskID) {
 			if disk.SizeBytes >= conversions.GbToBytes(minSizeGB) {
 				eligibleDisks++
 			} else {
@@ -28,6 +33,16 @@ func NonInstallationDiskCount(disks []*models.Disk, installationDiskID string, m
 	}
 
 	return eligibleDisks, availableDisks
+}
+
+func EligibleNonInstallationDisks(disks []*models.Disk, installationDiskID string, minSizeGB int64) []*models.Disk {
+	var eligible []*models.Disk
+	for _, disk := range disks {
+		if isNonInstallationDisk(disk, installationDiskID) && disk.SizeBytes >= conversions.GbToBytes(minSizeGB) {
+			eligible = append(eligible, disk)
+		}
+	}
+	return eligible
 }
 
 func HasOperator(operators []*models.MonitoredOperator, operatorName string) bool {

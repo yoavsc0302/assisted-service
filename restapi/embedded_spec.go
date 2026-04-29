@@ -7753,6 +7753,10 @@ func init() {
         "drive_type": {
           "$ref": "#/definitions/drive_type"
         },
+        "has_data": {
+          "description": "Whether the disk has existing data (filesystem signatures or partition tables). Detected by the agent using wipefs and blkid.",
+          "type": "boolean"
+        },
         "has_uuid": {
           "type": "boolean"
         },
@@ -19385,6 +19389,10 @@ func init() {
         },
         "drive_type": {
           "$ref": "#/definitions/drive_type"
+        },
+        "has_data": {
+          "description": "Whether the disk has existing data (filesystem signatures or partition tables). Detected by the agent using wipefs and blkid.",
+          "type": "boolean"
         },
         "has_uuid": {
           "type": "boolean"

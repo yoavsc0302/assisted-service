@@ -202,6 +202,35 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 			}}, nil
 	}
 
+	minDiskSizeGb := int64(0)
+	if additionalOperatorRequirements != nil {
+		minDiskSizeGb = additionalOperatorRequirements.DiskSizeGb
+	}
+	eligibleDisks := operatorscommon.EligibleNonInstallationDisks(inventory.Disks, host.InstallationDiskID, o.getMinDiskSizeGB(minDiskSizeGb))
+	var nonEmptyDiskNames []string
+	for _, disk := range eligibleDisks {
+		if disk.HasData {
+			nonEmptyDiskNames = append(nonEmptyDiskNames, disk.Name)
+		}
+	}
+	if len(nonEmptyDiskNames) > 0 {
+		var diskPaths []string
+		for _, name := range nonEmptyDiskNames {
+			diskPaths = append(diskPaths, "/dev/"+name)
+		}
+		return api.ValidationResult{
+			Status:       api.Failure,
+			ValidationId: o.GetHostValidationID(),
+			Reasons: []string{
+				fmt.Sprintf(
+					"ODF requires all non-installation disks to be empty, but the following disks have existing data: %s. "+
+						"Please wipe them by running `wipefs -a %s` on the host before proceeding with installation.",
+					strings.Join(nonEmptyDiskNames, ", "),
+					strings.Join(diskPaths, " "),
+				),
+			}}, nil
+	}
+
 	return api.ValidationResult{
 		Status:       api.Success,
 		ValidationId: o.GetHostValidationID(),

@@ -30,6 +30,9 @@ type Disk struct {
 	// drive type
 	DriveType DriveType `json:"drive_type,omitempty"`
 
+	// Whether the disk has existing data (filesystem signatures or partition tables). Detected by the agent using wipefs and blkid.
+	HasData bool `json:"has_data,omitempty"`
+
 	// has uuid
 	HasUUID bool `json:"has_uuid,omitempty"`
 
