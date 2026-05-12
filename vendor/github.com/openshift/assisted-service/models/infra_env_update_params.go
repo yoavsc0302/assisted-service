@@ -36,6 +36,9 @@ type InfraEnvUpdateParams struct {
 	// kernel arguments
 	KernelArguments KernelArguments `json:"kernel_arguments"`
 
+	// A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for hosts in this infra-env. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_sources.
+	NtpSources *string `json:"ntp_sources,omitempty"`
+
 	// Version of the OS image
 	OpenshiftVersion *string `json:"openshift_version,omitempty"`
 

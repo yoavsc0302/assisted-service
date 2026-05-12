@@ -438,7 +438,7 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 	params.NewClusterParams.Platform = platform
 	params.NewClusterParams.UserManagedNetworking = userManagedNetworking
 
-	if params.NewClusterParams.AdditionalNtpSource == nil {
+	if params.NewClusterParams.AdditionalNtpSource == nil && swag.StringValue(params.NewClusterParams.NtpSources) == "" {
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	}
 	if params.NewClusterParams.DiskEncryption == nil {
@@ -518,6 +518,18 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		if ntpSource != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSource) {
 			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	if params.NewClusterParams.NtpSources != nil {
+		ntpSources := swag.StringValue(params.NewClusterParams.NtpSources)
+		if ntpSources != "" {
+			if swag.StringValue(params.NewClusterParams.AdditionalNtpSource) != "" {
+				return common.NewApiError(http.StatusBadRequest, errors.New("ntp_sources and additional_ntp_source are mutually exclusive"))
+			}
+			if !pkgvalidations.ValidateAdditionalNTPSource(ntpSources) {
+				return common.NewApiError(http.StatusBadRequest, errors.Errorf("Invalid NTP source: %s", ntpSources))
+			}
 		}
 	}
 
@@ -765,6 +777,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			NetworkType:                  params.NewClusterParams.NetworkType,
 			UserManagedNetworking:        params.NewClusterParams.UserManagedNetworking,
 			AdditionalNtpSource:          swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
+			NtpSources:                   swag.StringValue(params.NewClusterParams.NtpSources),
 			MonitoredOperators:           monitoredOperators,
 			HighAvailabilityMode:         params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:               swag.StringValue(params.NewClusterParams.Hyperthreading),
@@ -3101,6 +3114,13 @@ func setCommonUserNetworkManagedParams(db *gorm.DB, id *strfmt.UUID, params *mod
 }
 
 func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
+	additionalSet := params.ClusterUpdateParams.AdditionalNtpSource != nil && swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource) != ""
+	exclusiveSet := params.ClusterUpdateParams.NtpSources != nil && swag.StringValue(params.ClusterUpdateParams.NtpSources) != ""
+
+	if additionalSet && exclusiveSet {
+		return common.NewApiError(http.StatusBadRequest, errors.New("ntp_sources and additional_ntp_source are mutually exclusive"))
+	}
+
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
 		additionalNtpSourcesDefined := ntpSource != ""
@@ -3116,6 +3136,18 @@ func (b *bareMetalInventory) updateNtpSources(params installer.V2UpdateClusterPa
 		b.setUsage(additionalNtpSourcesDefined, usage.AdditionalNtpSourceUsage, &map[string]interface{}{
 			"source_count": len(strings.Split(ntpSource, ","))}, usages)
 	}
+
+	if params.ClusterUpdateParams.NtpSources != nil {
+		ntpSources := swag.StringValue(params.ClusterUpdateParams.NtpSources)
+
+		if ntpSources != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSources) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSources)
+			log.WithError(err).Error("Failed to validate NTP sources")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		updates["ntp_sources"] = ntpSources
+	}
+
 	return nil
 }
 
@@ -5101,6 +5133,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				StaticNetworkConfig:    staticNetworkConfig,
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+				NtpSources:            swag.StringValue(params.InfraenvCreateParams.NtpSources),
 				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 				RendezvousIP:           params.InfraenvCreateParams.RendezvousIP,
 				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
@@ -5223,6 +5256,16 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 		return err
 	}
 
+	infraEnvNtpSources := swag.StringValue(params.InfraenvCreateParams.NtpSources)
+	if infraEnvNtpSources != "" {
+		if ntpSource != "" {
+			return common.NewApiError(http.StatusBadRequest, errors.New("ntp_sources and additional_ntp_sources are mutually exclusive"))
+		}
+		if !pkgvalidations.ValidateAdditionalNTPSource(infraEnvNtpSources) {
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Invalid NTP source: %s", infraEnvNtpSources))
+		}
+	}
+
 	if params.InfraenvCreateParams.SSHAuthorizedKey != nil && *params.InfraenvCreateParams.SSHAuthorizedKey != "" {
 		if err = validations.ValidateSSHPublicKey(*params.InfraenvCreateParams.SSHAuthorizedKey); err != nil {
 			err = errors.Errorf("SSH key is not valid")
@@ -5257,7 +5300,7 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context, params installer.RegisterInfraEnvParams) installer.RegisterInfraEnvParams {
-	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
+	if params.InfraenvCreateParams.AdditionalNtpSources == nil && swag.StringValue(params.InfraenvCreateParams.NtpSources) == "" {
 		params.InfraenvCreateParams.AdditionalNtpSources = &b.Config.DefaultNTPSource
 	}
 
@@ -5268,7 +5311,7 @@ func (b *bareMetalInventory) setDefaultRegisterInfraEnvParams(_ context.Context,
 		params.InfraenvCreateParams.CPUArchitecture = common.DefaultCPUArchitecture
 	}
 
-	if params.InfraenvCreateParams.AdditionalNtpSources == nil {
+	if params.InfraenvCreateParams.AdditionalNtpSources == nil && swag.StringValue(params.InfraenvCreateParams.NtpSources) == "" {
 		params.InfraenvCreateParams.AdditionalNtpSources = swag.String(b.Config.DefaultNTPSource)
 	}
 
@@ -5742,6 +5785,13 @@ func (b *bareMetalInventory) applyRendezvousIPUpdates(infraEnv *common.InfraEnv,
 }
 
 func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger) error {
+	additionalSet := params.InfraEnvUpdateParams.AdditionalNtpSources != nil && swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources) != ""
+	exclusiveSet := params.InfraEnvUpdateParams.NtpSources != nil && swag.StringValue(params.InfraEnvUpdateParams.NtpSources) != ""
+
+	if additionalSet && exclusiveSet {
+		return common.NewApiError(http.StatusBadRequest, errors.New("ntp_sources and additional_ntp_sources are mutually exclusive"))
+	}
+
 	if params.InfraEnvUpdateParams.AdditionalNtpSources != nil {
 		ntpSource := swag.StringValue(params.InfraEnvUpdateParams.AdditionalNtpSources)
 		additionalNtpSourcesDefined := ntpSource != ""
@@ -5755,6 +5805,20 @@ func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInf
 			updates["additional_ntp_sources"] = ntpSource
 		}
 	}
+
+	if params.InfraEnvUpdateParams.NtpSources != nil {
+		ntpSources := swag.StringValue(params.InfraEnvUpdateParams.NtpSources)
+
+		if ntpSources != "" && !pkgvalidations.ValidateAdditionalNTPSource(ntpSources) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSources)
+			log.WithError(err).Error("Failed to validate NTP sources")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		if ntpSources != infraEnv.NtpSources {
+			updates["ntp_sources"] = ntpSources
+		}
+	}
+
 	return nil
 }
 

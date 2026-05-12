@@ -201,7 +201,35 @@ const schedulableMastersManifestPatch = `---
   value: true
 `
 
+const baseChronyConf = `
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony`
+
+func (m *ManifestsGenerator) createExclusiveChronyContent(ntpSources string, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
+	content := baseChronyConf[:]
+
+	for _, source := range strings.Split(ntpSources, ",") {
+		source = strings.TrimSpace(source)
+		if source != "" {
+			content += fmt.Sprintf("\nserver %s iburst", source)
+		}
+	}
+
+	var manifestParams = map[string]interface{}{
+		"CHRONY_CONTENT": base64.StdEncoding.EncodeToString([]byte(content)),
+		"ROLE":           string(role),
+	}
+
+	return fillTemplate(manifestParams, ntpMachineConfigManifest, log)
+}
+
 func (m *ManifestsGenerator) createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
+	if c.NtpSources != "" {
+		return m.createExclusiveChronyContent(c.NtpSources, role, log)
+	}
+
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {

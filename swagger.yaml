@@ -5232,6 +5232,10 @@ definitions:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for the cluster. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_source.
+        x-nullable: true
       olm_operators:
         type: array
         description: |
@@ -5454,6 +5458,10 @@ definitions:
       additional_ntp_source:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+        x-nullable: true
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for the cluster. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_source.
         x-nullable: true
       olm_operators:
         type: array
@@ -5825,6 +5833,9 @@ definitions:
       additional_ntp_source:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for the cluster. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_source.
       monitored_operators:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
         type: array
@@ -7790,6 +7801,9 @@ definitions:
       additional_ntp_sources:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for hosts in this infra-env. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_sources.
       ssh_authorized_key:
         type: string
         description: SSH public key for debugging the installation.
@@ -7912,6 +7926,10 @@ definitions:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for hosts in this infra-env. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_sources.
+        x-nullable: true
       ssh_authorized_key:
         type: string
         description: SSH public key for debugging the installation.
@@ -7970,6 +7988,10 @@ definitions:
       additional_ntp_sources:
         type: string
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+        x-nullable: true
+      ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for hosts in this infra-env. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_sources.
         x-nullable: true
       ssh_authorized_key:
         type: string
