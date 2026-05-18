@@ -106,6 +106,9 @@ type ClusterCreateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
+	// A comma-separated list of NTP sources (name or IP) to be used as the complete NTP configuration for the cluster. When set, no default pool or discovered NTP sources will be included. Mutually exclusive with additional_ntp_source.
+	NtpSources *string `json:"ntp_sources,omitempty"`
+
 	// OpenShift release image URI.
 	OcpReleaseImage string `json:"ocp_release_image,omitempty"`
 

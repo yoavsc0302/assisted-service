@@ -155,8 +155,12 @@ func createInfraEnvManifest(infraEnv *common.InfraEnv, manifestsDir string) erro
 		}
 	}
 
+	ntpSourcesForDiscovery := infraEnv.AdditionalNtpSources
+	if infraEnv.NtpSources != "" {
+		ntpSourcesForDiscovery = infraEnv.NtpSources
+	}
 	var additionalNtpSources []string
-	for _, source := range strings.Split(infraEnv.AdditionalNtpSources, ",") {
+	for _, source := range strings.Split(ntpSourcesForDiscovery, ",") {
 		source = strings.TrimSpace(source)
 		if source != "" {
 			additionalNtpSources = append(additionalNtpSources, source)
