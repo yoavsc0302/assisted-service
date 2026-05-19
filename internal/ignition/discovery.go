@@ -108,6 +108,28 @@ IMAGE=$(echo $1 | sed 's/[@:].*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
+const agentStart = `#!/usr/bin/sh
+IMAGE=$1
+shift
+
+DELAY=5
+MAX_DELAY=300
+podman image exists "$IMAGE" && PULL_DONE=1 || PULL_DONE=0
+
+while [ $PULL_DONE -eq 0 ]; do
+    podman pull "$IMAGE" && PULL_DONE=1 && break
+    echo "Pull failed for $IMAGE, retrying in ${DELAY}s..."
+    sleep $DELAY
+    DELAY=$((DELAY * 2))
+    if [ $DELAY -gt $MAX_DELAY ]; then
+        DELAY=$MAX_DELAY
+    fi
+done
+
+podman run --pull=never --privileged --rm -v /usr/local/bin:/hostbin "$IMAGE" cp /usr/bin/agent /hostbin
+exec /usr/local/bin/agent "$@"
+`
+
 const okdBinariesOverlayTemplate = `#!/bin/env bash
 set -eux
 # Fetch an image with OKD rpms
@@ -303,6 +325,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"PullSecretToken":     pullSecretToken,
 		"AGENT_MOTD":          url.PathEscape(agentMessageOfTheDay),
 		"AGENT_FIX_BZ1964591": url.PathEscape(agentFixBZ1964591),
+		"AGENT_START":         url.PathEscape(agentStart),
 		"IPv6_CONF":           url.PathEscape(common.Ipv6DuidDiscoveryConf),
 		"PULL_SECRET":         url.PathEscape(infraEnv.PullSecret),
 		"RH_ROOT_CA":          rhCa,
