@@ -6860,6 +6860,10 @@ func init() {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
+          "type": "string"
+        },
         "ocp_release_image": {
           "description": "OpenShift release image URI.",
           "type": "string"
@@ -7153,6 +7157,11 @@ func init() {
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -9317,6 +9326,10 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string"
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -9422,6 +9435,11 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -9481,6 +9499,11 @@ func init() {
         },
         "kernel_arguments": {
           "$ref": "#/definitions/kernel_arguments"
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OS image",
@@ -11308,6 +11331,11 @@ func init() {
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -18561,6 +18589,10 @@ func init() {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
+          "type": "string"
+        },
         "ocp_release_image": {
           "description": "OpenShift release image URI.",
           "type": "string"
@@ -18854,6 +18886,11 @@ func init() {
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
           "type": "string",
           "x-nullable": true
         },
@@ -20986,6 +21023,10 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string"
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -21092,6 +21133,11 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -21151,6 +21197,11 @@ func init() {
         },
         "kernel_arguments": {
           "$ref": "#/definitions/kernel_arguments"
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OS image",
@@ -22937,6 +22988,11 @@ func init() {
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.",
           "type": "string",
           "x-nullable": true
         },

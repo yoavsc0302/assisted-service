@@ -52,6 +52,9 @@ type InfraEnvCreateParams struct {
 	// Required: true
 	Name *string `json:"name"`
 
+	// A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.
+	NtpSources *string `json:"ntp_sources,omitempty"`
+
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
