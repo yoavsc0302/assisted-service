@@ -92,6 +92,37 @@ func getProfileSpec(profile *configv1.TLSSecurityProfile) (*configv1.TLSProfileS
 	}
 }
 
+// FetchTLSCLIArgs reads the TLS profile from the cluster's APIServer resource
+// and returns the MinTLSVersion string and IANA cipher suite names suitable for
+// passing as --tls-min-version and --tls-cipher-suites CLI flags.
+func FetchTLSCLIArgs(ctx context.Context, restConfig *rest.Config) (minVersion string, cipherSuites []string, err error) {
+	configClient, err := configclientset.NewForConfig(restConfig)
+	if err != nil {
+		return "", nil, fmt.Errorf("creating config client: %w", err)
+	}
+
+	apiserver, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		log.Error(err, "unable to get APIServer config, using default Intermediate profile")
+		spec := configv1.TLSProfiles[configv1.TLSProfileIntermediateType]
+		return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+	}
+
+	profile := apiserver.Spec.TLSSecurityProfile
+	if profile == nil {
+		profile = &configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileIntermediateType,
+		}
+	}
+
+	spec, err := getProfileSpec(profile)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+}
+
 func parseCipherSuites(opensslNames []string) ([]uint16, error) {
 	// OpenShift TLS profiles use OpenSSL-style cipher names (e.g., "ECDHE-RSA-AES128-GCM-SHA256")
 	// but library-go's CipherSuite() expects IANA names (e.g., "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").
