@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -55,6 +56,7 @@ import (
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/system"
+	"github.com/openshift/assisted-service/internal/tlsconfig"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -704,6 +706,7 @@ func main() {
 
 	// Determine if IPXE artifact URLs need to be http
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
+	applyClusterTLSConfig(log, serverInfo)
 	generateInsecureIPXEURLs := serverInfo.HTTP != nil
 
 	disconnectedIgnitionGenerator := ignition.NewDisconnectedIgnitionGenerator(
@@ -778,13 +781,9 @@ func main() {
 
 	go startKubeAPIControllers(ctrlMgr, log, bm, crdEventsHandler, osImages, versionHandler, releaseHandler, clusterApi, hostApi, manifestsApi, generateInsecureIPXEURLs, sys)
 
-	// Interrupt servers on SIGINT/SIGTERM
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
 	setupServerForIPXE(serverInfo, h)
 	serverInfo.ListenAndServe()
-	<-stop
+	waitForShutdownSignal(log)
 	serverInfo.Shutdown()
 }
 
@@ -798,6 +797,46 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 	}
 	if serverInfo.HTTPS != nil {
 		serverInfo.HTTPS.Handler = h
+	}
+}
+
+func applyClusterTLSConfig(log *logrus.Logger, serverInfo *servers.ServerInfo) {
+	if Options.DeployTarget != deployment_type_k8s || serverInfo.HTTPS == nil {
+		return
+	}
+	restCfg := ctrl.GetConfigOrDie()
+	tlsCfg, err := tlsconfig.FetchTLSConfig(context.Background(), restCfg)
+	if err != nil {
+		log.WithError(err).Fatal("unable to fetch TLS config from APIServer")
+	}
+	serverInfo.HTTPS.TLSConfig = &tls.Config{
+		MinVersion:   tlsCfg.MinVersion,
+		CipherSuites: tlsCfg.CipherSuites,
+	}
+}
+
+func waitForShutdownSignal(log *logrus.Logger) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	tlsChanged := make(chan struct{}, 1)
+	if Options.DeployTarget == deployment_type_k8s {
+		watchCtx, watchCancel := context.WithCancel(context.Background())
+		defer watchCancel()
+		if err := tlsconfig.WatchForTLSProfileChanges(watchCtx, ctrl.GetConfigOrDie(), func() {
+			select {
+			case tlsChanged <- struct{}{}:
+			default:
+			}
+		}); err != nil {
+			log.WithError(err).Error("unable to start TLS profile watcher")
+		}
+	}
+
+	select {
+	case <-sigCh:
+	case <-tlsChanged:
+		log.Info("TLS profile changed, shutting down to reload")
 	}
 }
 
@@ -958,9 +997,20 @@ func createControllerManager() (manager.Manager, error) {
 				Label: labels.NewSelector().Add(*infraenvLabel),
 			}
 		}
-		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		var webhookTLSOpts []func(*tls.Config)
+		restCfg := ctrl.GetConfigOrDie()
+		tlsCfg, tlsErr := tlsconfig.FetchTLSConfig(context.Background(), restCfg)
+		if tlsErr != nil {
+			return nil, tlsErr
+		}
+		webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
+			cfg.MinVersion = tlsCfg.MinVersion
+			cfg.CipherSuites = tlsCfg.CipherSuites
+		})
+
+		return ctrl.NewManager(restCfg, ctrl.Options{
 			Scheme:           schemes,
-			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
+			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443, TLSOpts: webhookTLSOpts}),
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			Cache: cache.Options{

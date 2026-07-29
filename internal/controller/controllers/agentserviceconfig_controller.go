@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/kubernetes"
+	"github.com/openshift/assisted-service/internal/tlsconfig"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -59,6 +60,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -139,6 +141,9 @@ type AgentServiceConfigReconcileContext struct {
 
 	// flag to indicate if the operator is running on an OpenShift cluster or some other flavor of Kubernetes
 	IsOpenShift bool
+
+	// RestConfig is the cluster REST configuration, used for fetching TLS profile settings
+	RestConfig *rest.Config
 }
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -2829,17 +2834,31 @@ func newWebHookAPIService(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 }
 
 func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	command := []string{
+		"/assisted-service-admission",
+		"--secure-port=9443",
+		"--audit-log-path=-",
+		"--tls-cert-file=/var/serving-cert/tls.crt",
+		"--tls-private-key-file=/var/serving-cert/tls.key",
+	}
+
+	if asc.rec.IsOpenShift && asc.rec.RestConfig != nil {
+		minVersion, cipherSuites, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
+		if err != nil {
+			log.WithError(err).Warning("unable to fetch TLS profile for webhook, using defaults")
+		} else {
+			command = append(command, fmt.Sprintf("--tls-min-version=%s", minVersion))
+			if len(cipherSuites) > 0 {
+				command = append(command, fmt.Sprintf("--tls-cipher-suites=%s", strings.Join(cipherSuites, ",")))
+			}
+		}
+	}
+
 	serviceContainer := corev1.Container{
 		Name: "agentinstalladmission",
 		// always use the default image for webhooks since this will never need to run the installer binary
-		Image: serviceImageDefault(),
-		Command: []string{
-			"/assisted-service-admission",
-			"--secure-port=9443",
-			"--audit-log-path=-",
-			"--tls-cert-file=/var/serving-cert/tls.crt",
-			"--tls-private-key-file=/var/serving-cert/tls.key",
-		},
+		Image:   serviceImageDefault(),
+		Command: command,
 		Ports: []corev1.ContainerPort{
 			{
 				ContainerPort: 9443,
