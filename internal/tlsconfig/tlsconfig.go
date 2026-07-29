@@ -4,11 +4,15 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	libgocrypto "github.com/openshift/library-go/pkg/crypto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -20,6 +24,21 @@ var log = ctrl.Log.WithName("tlsconfig")
 // CipherSuites. If the APIServer resource is not available or has no TLS
 // profile set, the default Intermediate profile is used.
 func FetchTLSConfig(ctx context.Context, restConfig *rest.Config) (*tls.Config, error) {
+	adherence, err := FetchTLSAdherence(ctx, restConfig)
+	if err != nil {
+		log.Error(err, "unable to fetch TLS adherence, using default Intermediate profile")
+		return buildTLSConfigFromProfile(&configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileIntermediateType,
+		})
+	}
+
+	if !ShouldHonorClusterTLSProfile(adherence) {
+		log.Info("TLS adherence does not require honoring cluster profile, using default Intermediate", "adherence", adherence)
+		return buildTLSConfigFromProfile(&configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileIntermediateType,
+		})
+	}
+
 	configClient, err := configclientset.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("creating config client: %w", err)
@@ -90,6 +109,120 @@ func getProfileSpec(profile *configv1.TLSSecurityProfile) (*configv1.TLSProfileS
 	default:
 		return configv1.TLSProfiles[configv1.TLSProfileIntermediateType], nil
 	}
+}
+
+// FetchTLSCLIArgs reads the TLS profile from the cluster's APIServer resource
+// and returns the MinTLSVersion string and IANA cipher suite names suitable for
+// passing as --tls-min-version and --tls-cipher-suites CLI flags.
+func FetchTLSCLIArgs(ctx context.Context, restConfig *rest.Config) (minVersion string, cipherSuites []string, err error) {
+	adherence, err := FetchTLSAdherence(ctx, restConfig)
+	if err != nil {
+		log.Error(err, "unable to fetch TLS adherence, using default Intermediate profile")
+		spec := configv1.TLSProfiles[configv1.TLSProfileIntermediateType]
+		return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+	}
+
+	if !ShouldHonorClusterTLSProfile(adherence) {
+		log.Info("TLS adherence does not require honoring cluster profile, using default Intermediate", "adherence", adherence)
+		spec := configv1.TLSProfiles[configv1.TLSProfileIntermediateType]
+		return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+	}
+
+	configClient, err := configclientset.NewForConfig(restConfig)
+	if err != nil {
+		return "", nil, fmt.Errorf("creating config client: %w", err)
+	}
+
+	apiserver, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		log.Error(err, "unable to get APIServer config, using default Intermediate profile")
+		spec := configv1.TLSProfiles[configv1.TLSProfileIntermediateType]
+		return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+	}
+
+	profile := apiserver.Spec.TLSSecurityProfile
+	if profile == nil {
+		profile = &configv1.TLSSecurityProfile{
+			Type: configv1.TLSProfileIntermediateType,
+		}
+	}
+
+	spec, err := getProfileSpec(profile)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return string(spec.MinTLSVersion), libgocrypto.OpenSSLToIANACipherSuites(spec.Ciphers), nil
+}
+
+var apiServerGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "apiservers",
+}
+
+// ShouldHonorClusterTLSProfile returns true when the component must honor the
+// cluster-wide TLS profile. Mirrors library-go's ShouldHonorClusterTLSProfile.
+// Unknown values return true for forward compatibility.
+func ShouldHonorClusterTLSProfile(adherence string) bool {
+	switch adherence {
+	case "", "LegacyAdheringComponentsOnly":
+		return false
+	default:
+		return true
+	}
+}
+
+// FetchTLSAdherence reads the tlsAdherence field from the APIServer resource
+// using the dynamic client, since our vendored openshift/api does not include
+// the TLSAdherence type. Returns the raw string value, or empty string if the
+// field is not set or the resource is not available.
+func FetchTLSAdherence(ctx context.Context, restConfig *rest.Config) (string, error) {
+	dynClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return "", fmt.Errorf("creating dynamic client: %w", err)
+	}
+
+	obj, err := dynClient.Resource(apiServerGVR).Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("getting APIServer resource: %w", err)
+	}
+
+	adherence, _, _ := unstructured.NestedString(obj.Object, "spec", "tlsAdherence")
+	return adherence, nil
+}
+
+// BuildTLSConfigFromCLIArgs builds a *tls.Config from a TLS version string
+// and comma-separated IANA cipher suite names, as passed via environment
+// variables or CLI flags.
+func BuildTLSConfigFromCLIArgs(minVersion string, cipherSuites string) (*tls.Config, error) {
+	ver, err := libgocrypto.TLSVersion(minVersion)
+	if err != nil {
+		return nil, fmt.Errorf("invalid TLS version %q: %w", minVersion, err)
+	}
+
+	config := &tls.Config{
+		MinVersion: ver,
+	}
+
+	if ver < tls.VersionTLS13 && cipherSuites != "" {
+		names := strings.Split(cipherSuites, ",")
+		var suites []uint16
+		for _, name := range names {
+			suite, csErr := libgocrypto.CipherSuite(strings.TrimSpace(name))
+			if csErr != nil {
+				log.Info("skipping unsupported cipher suite", "cipher", name)
+				continue
+			}
+			suites = append(suites, suite)
+		}
+		if len(suites) == 0 {
+			return nil, fmt.Errorf("none of the specified cipher suites are supported: %v", names)
+		}
+		config.CipherSuites = suites
+	}
+
+	return config, nil
 }
 
 func parseCipherSuites(opensslNames []string) ([]uint16, error) {
