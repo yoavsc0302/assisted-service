@@ -1519,6 +1519,17 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			corev1.EnvVar{Name: "ASSISTED_SERVICE_SCHEME", Value: "https"},
 			corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: imageHandlerHTTPPort.String()},
 		)
+		if asc.rec.RestConfig != nil {
+			minVersion, cipherSuites, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
+			if err != nil {
+				log.WithError(err).Warning("unable to fetch TLS profile for image-service, using defaults")
+			} else {
+				containerEnv = append(containerEnv,
+					corev1.EnvVar{Name: "TLS_MIN_VERSION", Value: minVersion},
+					corev1.EnvVar{Name: "TLS_CIPHER_SUITES", Value: strings.Join(cipherSuites, ",")},
+				)
+			}
+		}
 		volumeMounts = append(volumeMounts,
 			corev1.VolumeMount{Name: "tls-certs", MountPath: "/etc/image-service/certs"},
 			corev1.VolumeMount{Name: "service-cabundle", MountPath: "/etc/image-service/ca-bundle"},
